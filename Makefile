@@ -1,6 +1,6 @@
 COSMOS_SDK_DIR := cosmos-sdk-proto-schema
 WASMD_DIR := wasm-proto-shema
-COSMOS_SDK_VERSION := v0.17.1
+COSMOS_SDK_VERSION := integration/caelum
 WASMD_VERSION := v0.16.0
 COSMOS_PROTO_RELATIVE_DIRS := proto third_party/proto
 WASMD_PROTO_RELATIVE_DIRS := proto
@@ -20,11 +20,11 @@ else
     UNAME_S := $(shell uname -s)
     ifeq ($(UNAME_S),Linux)
         FIND_CMD := find $(COSMOS_PROTO_RELATIVE_DIRS) -regextype posix-extended
-				OPEN_CMD := xdg-open
+		OPEN_CMD := xdg-open
     endif
     ifeq ($(UNAME_S),Darwin)
         FIND_CMD := find -E $(COSMOS_PROTO_RELATIVE_DIRS)
-				OPEN_CMD := open
+		OPEN_CMD := open
     endif
 endif
 
@@ -43,8 +43,8 @@ SOURCE := $(RELATIVE_SOURCE:%=$(COSMOS_SDK_DIR)/%)
 GENERATED := $(UNROOTED_SOURCE:%.proto=$(OUTPUT_FOLDER)/%.py)
 PROTO_ROOT_DIRS := $(COSMOS_PROTO_RELATIVE_DIRS:%=$(COSMOS_SDK_DIR)/%)
 
-GENERATED_DIRS := $(call unique,$(foreach _,$(UNROOTED_SOURCE),$(dir $(_))))
-INIT_PY_FILES_TO_CREATE :=  $(GENERATED_DIRS:%=$(OUTPUT_FOLDER)/%__init__.py)
+GENERATED_DIRS := $(shell find $(OUTPUT_FOLDER) -type d)
+INIT_PY_FILES_TO_CREATE :=  $(GENERATED_DIRS:%=%/__init__.py)
 
 COMPILE_PROTOBUFS_COMMAND := python -m grpc_tools.protoc $(PROTO_ROOT_DIRS:%=--proto_path=%) --python_out=$(OUTPUT_FOLDER) --grpc_python_out=$(OUTPUT_FOLDER) $(UNROOTED_SOURCE)
 
