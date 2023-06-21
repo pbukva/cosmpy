@@ -1,14 +1,22 @@
 COSMOS_SDK_URL := https://github.com/fetchai/cosmos-sdk
 COSMOS_SDK_VERSION := v0.18.0
+COSMOS_PROTO_RELATIVE_DIRS := proto third_party/proto
 COSMOS_SDK_DIR := build/cosmos-sdk-proto-schema
 
 WASMD_URL := https://github.com/CosmWasm/wasmd
 WASMD_VERSION := v0.27.0
+WASMD_PROTO_RELATIVE_DIRS := proto third_party/proto
 WASMD_DIR := build/wasm-proto-shema
 
 IBCGO_URL := https://github.com/cosmos/ibc-go
 IBCGO_VERSION := v2.2.0
+IBCGO_PROTO_RELATIVE_DIRS := proto third_party/proto
 IBCGO_DIR := build/ibcgo-proto-schema
+
+OSMOSIS_URL := https://github.com/osmosis-labs/osmosis
+OSMOSIS_VERSION := v15.1.2
+OSMOSIS_PROTO_RELATIVE_DIRS := proto
+OSMOSIS_DIR := build/osmosis-proto-schema
 
 COSMPY_PROTOS_DIR := cosmpy/protos
 COSMPY_SRC_DIR := cosmpy
@@ -258,17 +266,21 @@ unique = $(if $1,$(firstword $1) $(call unique,$(filter-out $(firstword $1),$1))
 
 proto: fetch_proto_schema_source generate_proto_types generate_init_py_files
 
-generate_proto_types: $(COSMOS_SDK_DIR) $(WASMD_DIR) $(IBCGO_DIR)
+find:
+	echo find $(WASMD_DIR) \( -path */proto/* -or -path */third_party/proto/* \) -type f -name *.proto
+
+generate_proto_types: $(COSMOS_SDK_DIR) $(WASMD_DIR) $(IBCGO_DIR) $(OSMOSIS_DIR)
 	rm -frv $(COSMPY_PROTOS_DIR)/*
-	python -m grpc_tools.protoc --proto_path=$(WASMD_DIR)/proto --proto_path=$(WASMD_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(WASMD_DIR) \( -path */proto/* -or -path */third_party/proto/* \) -type f -name *.proto)
-	python -m grpc_tools.protoc --proto_path=$(IBCGO_DIR)/proto --proto_path=$(IBCGO_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(IBCGO_DIR) \( -path */proto/* -or -path */third_party/proto/* \) -type f -name *.proto)
-# ensure cosmos-sdk is last as previous modules may have duplicated proto models which are now outdated
-	python -m grpc_tools.protoc --proto_path=$(COSMOS_SDK_DIR)/proto --proto_path=$(COSMOS_SDK_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(COSMOS_SDK_DIR) \( -path */proto/* -or -path */third_party/proto/* \) -type f -name *.proto)
+	python -m grpc_tools.protoc --proto_path=$(WASMD_DIR)/proto --proto_path=$(WASMD_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(WASMD_DIR) -type f -name *.proto)
+	python -m grpc_tools.protoc --proto_path=$(IBCGO_DIR)/proto --proto_path=$(IBCGO_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(IBCGO_DIR) -type f -name *.proto)
+#	python -m grpc_tools.protoc --proto_path=$(OSMOSIS_DIR)/proto --proto_path=$(OSMOSIS_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(OSMOSIS_DIR) -type f -name *.proto)
+# ensure cosmot -sdk is last as previous modules may have duplicated proto models which are now outdated
+	python -m grpc_tools.protoc --proto_path=$(COSMOS_SDK_DIR)/proto --proto_path=$(COSMOS_SDK_DIR)/third_party/proto  --python_out=$(COSMPY_PROTOS_DIR) --grpc_python_out=$(COSMPY_PROTOS_DIR) $(shell find $(COSMOS_SDK_DIR) -type f -name *.proto)
 
 fetch_proto_schema_source: $(COSMOS_SDK_DIR) $(WASMD_DIR) $(IBCGO_DIR)
 
 .PHONY: generate_init_py_files
-generate_init_py_files: generate_proto_types
+generate_init_py_files: #generate_proto_types
 	find $(COSMPY_PROTOS_DIR)/ -type d -exec touch {}/__init__.py \;
 # restore root __init__.py as it contains code to have the proto files module available
 	git restore $(COSMPY_PROTOS_DIR)/__init__.py
@@ -297,6 +309,11 @@ $(IBCGO_DIR): Makefile
 	rm -rfv $(IBCGO_DIR)
 	git clone --branch $(IBCGO_VERSION) --depth 1 --quiet --no-checkout --filter=blob:none $(IBCGO_URL) $(IBCGO_DIR)
 	cd $(IBCGO_DIR) && git checkout $(IBCGO_VERSION) -- $(IBCGO_PROTO_RELATIVE_DIRS)
+
+#$(OSMOSIS_DIR): Makefile
+#	rm -rfv $(OSMOSIS_DIR)
+#	git clone --branch $(OSMOSIS_VERSION) --depth 1 --quiet --no-checkout --filter=blob:none $(OSMOSIS_URL) $(OSMOSIS_DIR)
+#	cd $(OSMOSIS_DIR) && git checkout $(OSMOSIS_VERSION) -- $(OSMOSIS_PROTO_RELATIVE_DIRS)
 
 debug:
 	$(info SOURCES_REGEX_TO_EXCLUDE: $(SOURCES_REGEX_TO_EXCLUDE))
